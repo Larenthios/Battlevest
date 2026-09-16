@@ -114,10 +114,11 @@ public unsafe static class Utils
             if(EzThrottler.Throttle("TradeClose")) Callback.Fire(addon, true, -1);
         }
     }
+    
     private static bool PromptMatchesAddon(string prompt, uint addonRow)
     {
         var haystack = Flatten(prompt);
-        return GetSheet<Addon>().GetRow(addonRow).Text.ToDalamudString().Payloads
+        return Svc.Data.GetExcelSheet<Addon>().GetRow(addonRow).Text.ToDalamudString().Payloads
             .OfType<TextPayload>()
             .Select(x => Flatten(x.Text ?? ""))
             .Where(x => x.Length > 0)
