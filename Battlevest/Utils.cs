@@ -1,7 +1,9 @@
 ﻿using Battlevest.Data;
 using Battlevest.Sheets;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Memory;
+using Dalamud.Utility;
 using ECommons.Automation;
 using ECommons.Automation.UIInput;
 using ECommons.ExcelServices;
@@ -112,6 +114,18 @@ public unsafe static class Utils
             if(EzThrottler.Throttle("TradeClose")) Callback.Fire(addon, true, -1);
         }
     }
+    private static bool PromptMatchesAddon(string prompt, uint addonRow)
+    {
+        var haystack = Flatten(prompt);
+        return GetSheet<Addon>().GetRow(addonRow).Text.ToDalamudString().Payloads
+            .OfType<TextPayload>()
+            .Select(x => Flatten(x.Text ?? ""))
+            .Where(x => x.Length > 0)
+            .OrderByDescending(x => x.Length)
+            .Any(x => haystack.Contains(x, StringComparison.OrdinalIgnoreCase));
+
+        static string Flatten(string s) => string.Join(' ', s.Split((char[])null, StringSplitOptions.RemoveEmptyEntries));
+    }
 
     public static bool HandleYesno()
     {
@@ -119,7 +133,7 @@ public unsafe static class Utils
         if(TryGetAddonMaster<AddonMaster.SelectYesno>("SelectYesno", out var m) && m.IsAddonReady)
         {
             var isLeveFinish = m.Text.ContainsAny(StringComparison.OrdinalIgnoreCase, CustomSheet.LeveDirector.GetRow(0).Value.GetText(true), CustomSheet.LeveDirector.GetRow(1).Value.GetText(true));
-            if(isLeveFinish || m.Text.EqualsAny(Svc.Data.GetExcelSheet<Addon>().GetRow(608).Text.GetText()))
+            if(isLeveFinish || PromptMatchesAddon(m.Text, 608))
             {
                 S.TextAdvanceIPC.Stop();
                 if(EzThrottler.Throttle("YesNo"))
